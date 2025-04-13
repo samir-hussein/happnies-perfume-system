@@ -2,7 +2,7 @@ name: Deploy to Hostinger
 
 on:
   push:
-    branches: [production]  # No space after colon, no indentation for list items
+    branches: [production]
 
 jobs:
   deploy:
@@ -16,25 +16,35 @@ jobs:
         run: |
           composer install --no-dev --prefer-dist --optimize-autoloader
 
+      - name: Setup SSH Environment
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # Verify key is valid
+          ssh-keygen -l -f ~/.ssh/deploy_key
+          # Add host to known_hosts
+          ssh-keyscan -p ${{ secrets.HOSTINGER_PORT || 22 }} ${{ secrets.HOSTINGER_HOST }} >> ~/.ssh/known_hosts
+
       - name: Upload files via SCP
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.HOSTINGER_HOST }}
           username: ${{ secrets.HOSTINGER_USERNAME }}
-          key_path: ${{ secrets.HOSTINGER_SSH_KEY }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}  # Using key content directly
           port: ${{ secrets.HOSTINGER_PORT || 22 }}
           source: "./*"
           target: "/home/u923189910/domains/happniess-perfume.com/public_html/system"
           strip_components: 1
           overwrite: true
-          rm: false  # Explicitly set to not remove existing files
+          rm: false
 
       - name: Run migrations and optimize
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOSTINGER_HOST }}
           username: ${{ secrets.HOSTINGER_USERNAME }}
-          key_path: ${{ secrets.HOSTINGER_SSH_KEY }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
           port: ${{ secrets.HOSTINGER_PORT || 22 }}
           script: |
             cd /home/u923189910/domains/happniess-perfume.com/public_html/system
