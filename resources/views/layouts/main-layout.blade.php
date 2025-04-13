@@ -8,7 +8,7 @@
     <meta name="author" content="">
     <link rel="icon" href="favicon.ico">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title')</title>
+    <title>@yield('title',"Happniess Perfume System")</title>
     <!-- Simple bar CSS -->
     <link rel="stylesheet" href="{{ asset('dashboard/css/simplebar.css') }}">
 
