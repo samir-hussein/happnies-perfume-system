@@ -1,6 +1,6 @@
 @extends('dashboard.layouts.main-layout')
 
-@section('title', 'لوحة التحكم')
+@section('title', "Happniess Perfume System")
 
 @section('style')
     <style>
