@@ -23,30 +23,24 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p ${{ secrets.HOSTINGER_PORT || 22 }} ${{ secrets.HOSTINGER_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Clean target directory (optional)
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOSTINGER_HOST }}
-          username: ${{ secrets.HOSTINGER_USERNAME }}
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          port: ${{ secrets.HOSTINGER_PORT || 22 }}
-          script: |
-            rm -rf /home/u923189910/domains/happniess-perfume.com/public_html/system/config/*
-            rm -rf /home/u923189910/domains/happniess-perfume.com/public_html/system/storage/framework/views/*
+      - name: Create deployment archive (excluding .env)
+        run: |
+          tar --exclude='.env' \
+              --exclude='.git' \
+              --exclude='node_modules' \
+              -czf /tmp/deploy.tar.gz .
 
-      - name: Upload files via SCP (with tar overwrite)
+      - name: Upload files via SCP (preserve existing)
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.HOSTINGER_HOST }}
           username: ${{ secrets.HOSTINGER_USERNAME }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           port: ${{ secrets.HOSTINGER_PORT || 22 }}
-          source: "./*"
+          source: "/tmp/deploy.tar.gz"
           target: "/home/u923189910/domains/happniess-perfume.com/public_html/system"
-          strip_components: 1
-          overwrite: true
           tar_tmp_path: "/tmp"
-          tar_exec: "tar --overwrite -xzf"  # Force overwrite existing files
+          tar_exec: "tar --skip-old-files -xzf"  # Skip existing files during extraction
 
       - name: Set correct permissions
         uses: appleboy/ssh-action@master
@@ -57,7 +51,9 @@ jobs:
           port: ${{ secrets.HOSTINGER_PORT || 22 }}
           script: |
             cd /home/u923189910/domains/happniess-perfume.com/public_html/system
+            [ -f .env ] || cp .env.example .env  # Create .env if missing
             chmod -R 755 storage bootstrap/cache
+            chmod 600 .env
             chown -R u923189910:o1007068740 .
 
       - name: Run migrations and optimize
