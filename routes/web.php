@@ -43,36 +43,42 @@ Route::middleware("already.inuse")->group(function () {
     Route::post('/register', [AuthController::class, "store"])->name("register");
 });
 
-Route::get("online/order", [OrderController::class, "onlineOrdersList"])->name("order.online");
-Route::get("online/order/{order}", [OrderController::class, "onlineShow"])->name("order.online.show");
-Route::get("online/order/{order}/done", [OrderController::class, "onlinePay"])->name("order.online.done");
-Route::delete("online/order/{order}/cancel", [OrderController::class, "onlineCancel"])->name("order.online.cancel");
+Route::middleware("guest")->group(function () {
+    Route::get("login", function () {
+        return view('login');
+    })->name("login");
 
-Route::get("login", function () {
-    return view('login');
-})->name("login");
-
-Route::post("login", [AuthController::class, "login"])->name("login.submit");
-
-Route::get("/product/search", [ProductController::class, "search"])->name("product.search");
-
-Route::get("/pay", [PayController::class, "store"])->name("pay.store");
-Route::get("/pay/{order}", [PayController::class, "update"])->name("pay.update");
+    Route::post("login", [AuthController::class, "login"])->name("login.submit");
+});
 
 Route::middleware("first.use")->group(function () {
-    Route::get('/', function () {
-        return view('welcome', [
-            "employees" => Employee::latest()->get("name")
-        ]);
-    })->name('home');
+    Route::middleware("auth")->group(function () {
+        Route::get('/', function () {
+            return view('welcome', [
+                "employees" => Employee::latest()->get("name")
+            ]);
+        })->name('home');
 
-    Route::get('/online', function () {
-        return view('online', [
-            "employees" => Employee::latest()->get("name")
-        ]);
-    })->name('online');
+        Route::get('/online', function () {
+            return view('online', [
+                "employees" => Employee::latest()->get("name")
+            ]);
+        })->name('online');
 
-    Route::prefix("dashboard")->name("dashboard.")->middleware("auth")->group(function () {
+        Route::get("online/order", [OrderController::class, "onlineOrdersList"])->name("order.online");
+        Route::get("online/order/{order}", [OrderController::class, "onlineShow"])->name("order.online.show");
+        Route::get("online/order/{order}/done", [OrderController::class, "onlinePay"])->name("order.online.done");
+        Route::delete("online/order/{order}/cancel", [OrderController::class, "onlineCancel"])->name("order.online.cancel");
+
+
+        Route::get("/product/search", [ProductController::class, "search"])->name("product.search");
+
+        Route::get("/pay", [PayController::class, "store"])->name("pay.store");
+        Route::get("/pay/{order}", [PayController::class, "update"])->name("pay.update");
+        Route::get('logout', [AuthController::class, "logout"])->name("logout");
+    });
+
+    Route::prefix("dashboard")->name("dashboard.")->middleware(["auth", "admin"])->group(function () {
         Route::get('/home', [WelcomeController::class, "index"])->name('home');
 
         Route::get('/profile', function () {
@@ -86,7 +92,6 @@ Route::middleware("first.use")->group(function () {
 
         Route::put('/profile', [ProfileController::class, "update"])->name('profile.update');
 
-        Route::get('logout', [AuthController::class, "logout"])->name("logout");
 
         Route::get('notification', [NotificationController::class, "index"])->name("notification.index");
         Route::get('notification/new/count', [NotificationController::class, "newCount"])->name("notification.new.count");

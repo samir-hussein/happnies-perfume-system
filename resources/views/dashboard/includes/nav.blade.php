@@ -21,7 +21,7 @@
             </a>
             <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownMenuLink">
                 <a class="dropdown-item" href="{{ route('dashboard.profile') }}">البيانات الشخصية</a>
-                <a class="dropdown-item" href="{{ route('dashboard.logout') }}">تسجيل الخروج</a>
+                <a class="dropdown-item" href="{{ route('logout') }}">تسجيل الخروج</a>
             </div>
         </li>
     </ul>
