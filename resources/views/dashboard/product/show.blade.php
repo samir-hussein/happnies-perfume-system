@@ -62,7 +62,7 @@
                                 <div class="col">
                                     <label for="name">الكمية</label>
                                     <input type="text" class="form-control" id="qty" name="qty" dir="auto"
-                                        value="0" placeholder="0">
+                                        value="" placeholder="0">
                                     @error('qty')
                                         <p style="color: red">* {{ $message }}</p>
                                     @enderror

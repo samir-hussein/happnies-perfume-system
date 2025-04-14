@@ -29,7 +29,7 @@ class UpdateRequest extends FormRequest
             'unit' => 'required|string',
             "code" => "required|unique:products,code," . request("product")->id,
             "description" => "sometimes",
-            'qty' => 'required|numeric|min:0',
+            'qty' => 'sometimes|numeric|min:0',
             'warning_qty' => 'sometimes|min:0',
             "price" => "required|numeric|min:0",
             "unit_price" => "sometimes|min:0",
