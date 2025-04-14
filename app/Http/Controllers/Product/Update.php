@@ -12,19 +12,17 @@ class Update extends Controller
     public static function boot(array $request, Product $product)
     {
         $product->update($request);
-        $total_qty = $product->qty->sum("qty");
 
-        if ($request['unit_price'] && $request['qty'] != $total_qty) {
+        if ($request['unit_price'] && $request['qty'] != 0) {
             $match_qty = $product->qty->where("price", $request['unit_price'])->first();
-            $new_qty = $request["qty"] - $total_qty;
 
             if ($match_qty) {
-                $match_qty->qty += $new_qty;
+                $match_qty->qty += $request['qty'];
                 $match_qty->store_date = new \DateTime;
                 $match_qty->save();
             } else {
                 $product->qty()->create([
-                    "qty" => $new_qty,
+                    "qty" => $request['qty'],
                     "price" => $request['unit_price'],
                     "store_date" => new \DateTime
                 ]);
