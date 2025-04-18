@@ -326,18 +326,19 @@
                 }
             },
             dataLabels: {
-                enabled: true
+                formatter: (val) => {
+                    return val
+                }
             },
             stroke: {
-                show: true,
-                width: 4,
-                colors: ['transparent']
+                width: 1,
+                colors: ['#fff']
             },
             xaxis: {
                 categories: JSON.parse('{!! json_encode($categories) !!}'),
                 labels: {
                     formatter: function(val) {
-                        return val + " جنية"
+                        return parseInt(val) + " جنية"
                     }
                 }
             },
@@ -347,7 +348,7 @@
             tooltip: {
                 y: {
                     formatter: function(val) {
-                        return val + " جنية"
+                        return parseInt(val) + " جنية"
                     }
                 }
             },
