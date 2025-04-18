@@ -327,7 +327,7 @@
             },
             dataLabels: {
                 formatter: (val) => {
-                    return val + "nsuivduifhuivfhfdui"
+                    return val
                 }
             },
             stroke: {
@@ -348,7 +348,7 @@
             tooltip: {
                 y: {
                     formatter: function(val) {
-                        return val + " جنية"
+                        return val
                     }
                 }
             },
