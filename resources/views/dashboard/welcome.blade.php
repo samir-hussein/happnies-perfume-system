@@ -326,9 +326,7 @@
                 }
             },
             dataLabels: {
-                formatter: (val) => {
-                    return val
-                }
+                enabled: true
             },
             stroke: {
                 width: 1,
