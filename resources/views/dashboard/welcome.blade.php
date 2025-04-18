@@ -338,7 +338,7 @@
                 categories: JSON.parse('{!! json_encode($categories) !!}'),
                 labels: {
                     formatter: function(val) {
-                        return val + " جنية"
+                        return val
                     }
                 }
             },
