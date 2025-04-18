@@ -338,7 +338,7 @@
 				categories: JSON.parse('{!! json_encode($categories) !!}'),
 				labels: {
 					formatter: function(val) {
-						return val + " جنية"
+						return val.toFixed(2) + " جنية"
 					}
 				}
 			},
@@ -356,7 +356,7 @@
 			tooltip: {
 				y: {
 					formatter: function(val) {
-						return val + " جنية"
+						return val.toFixed(2) + " جنية"
 					}
 				}
 			},
