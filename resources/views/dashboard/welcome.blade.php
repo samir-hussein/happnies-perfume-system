@@ -326,9 +326,7 @@
                 }
             },
             dataLabels: {
-                formatter: (val) => {
-                    return val
-                }
+                enabled: false,
             },
             stroke: {
                 width: 1,
@@ -338,7 +336,7 @@
                 categories: JSON.parse('{!! json_encode($categories) !!}'),
                 labels: {
                     formatter: function(val) {
-                        return parseInt(val) + " جنية"
+                        return val + " جنية"
                     }
                 }
             },
@@ -348,7 +346,7 @@
             tooltip: {
                 y: {
                     formatter: function(val) {
-                        return parseInt(val) + " جنية"
+                        return val + " جنية"
                     }
                 }
             },
