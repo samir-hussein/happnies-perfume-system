@@ -327,7 +327,7 @@
 			},
 			dataLabels: {
 				formatter: (val) => {
-					return val
+					return val.toFixed(2)
 				}
 			},
 			stroke: {
