@@ -15,132 +15,162 @@ use App\Models\OrderItem;
 
 class WelcomeController extends Controller
 {
-	public function index(Request $request)
-	{
-		$warningList = Warning::boot();
-		NotificationController::store($warningList);
-		$list = NotificationController::alertList();
-		NotificationController::markAlertList($list);
+    public function index(Request $request)
+    {
+        $warningList = Warning::boot();
+        NotificationController::store($warningList);
+        $list = NotificationController::alertList();
+        NotificationController::markAlertList($list);
 
-		$analysis = $request->analysis ?? "day";
-		$year = $request->year ?? date("Y");
-		$month = $request->month ?? date("Y-m");
+        $analysis = $request->analysis ?? "day";
+        $year = $request->year ?? date("Y");
+        $month = $request->month ?? date("Y-m");
 
-		$products_capital = ProductQty::select(DB::raw('sum(qty * price) as total'))->first()->total;
-		$capital = Partner::sum("capital");
-		$profits = Partner::sum("profits");
-		$safe = Safe::sum("amount");
-		$safe_capital = $safe - $profits;
-		$total_sell = Order::where("status", "finished")->where("updated_at", ">=", date("Y-m"))->sum("total_price");
-		$expenses = Safe::where("amount", "<", 0)->where("created_at", ">=", date("Y-m"))->sum("amount") * -1;
+        $products_capital = ProductQty::select(DB::raw('sum(qty * price) as total'))->first()->total;
+        $capital = Partner::sum("capital");
+        $profits = Partner::sum("profits");
+        $safe = Safe::sum("amount");
+        $safe_capital = $safe - $profits;
+        $total_sell = Order::where("status", "finished")->where("updated_at", ">=", date("Y-m"))->sum("total_price");
+        $expenses = Safe::where("amount", "<", 0)->where("created_at", ">=", date("Y-m"))->sum("amount") * -1;
 
-		$online_orders_capital = OrderItem::select(DB::raw('sum(qty * unit_price) as total'))
-			->join("orders", "orders.id", "order_items.order_id")
-			->where("orders.status", "pendding")
-			->first()
-			->total;
+        $online_orders_capital = OrderItem::select(DB::raw('sum(qty * unit_price) as total'))
+            ->join("orders", "orders.id", "order_items.order_id")
+            ->where("orders.status", "pendding")
+            ->first()
+            ->total;
 
-		$categories = [];
-		$orders_chart_data = [];
-		$online_chart_data = [];
-		$offline_chart_data = [];
-		$orders_chart_price = [];
-		$online_chart_price = [];
-		$offline_chart_price = [];
-		$profits_chart = [];
-		$orders_analysis_data = Order::query()->where("status", "finished");
-		$profits_analysis_data = Order::query()->join("order_items as o", "orders.id", "o.order_id")->where("status", "finished");
 
-		if ($analysis == "year") {
-			$orders_analysis_data->select(DB::raw("DATE_FORMAT(orders.updated_at, '%Y') as year"), DB::raw("COUNT(DISTINCT orders.id) as orders"), "type", DB::raw("SUM(orders.total_price) as total_price"))
-				->groupBy(DB::raw("DATE_FORMAT(orders.updated_at, '%Y')"), 'type');
+        $categories = [];
+        $orders_chart_data = [];
+        $online_chart_data = [];
+        $offline_chart_data = [];
+        $orders_chart_price = [];
+        $online_chart_price = [];
+        $offline_chart_price = [];
+        $profits_chart = [];
+        $orders_analysis_data = Order::query()->where("status", "finished");
+        $profits_analysis_data = Order::query()->join("order_items as o", "orders.id", "o.order_id")->where("status", "finished");
+        if ($analysis == "year") {
+            $orders_analysis_data->select(DB::raw("strftime('%Y',orders.updated_at) as year"), DB::raw("COUNT(DISTINCT orders.id) as orders"), "type", DB::raw("SUM(orders.total_price) as total_price"))->groupBy(DB::raw("strftime('%Y',orders.updated_at)"), 'type');
 
-			$profits_analysis_data->select(DB::raw("SUM(o.qty * o.unit_price) as total_unit_price"), DB::raw("DATE_FORMAT(orders.updated_at, '%Y') as year"))
-				->groupBy(DB::raw("DATE_FORMAT(orders.updated_at, '%Y')"));
+            $profits_analysis_data->select(DB::raw("SUM(o.qty * o.unit_price) as total_unit_price"), DB::raw("strftime('%Y',orders.updated_at) as year"))->groupBy(DB::raw("strftime('%Y',orders.updated_at)"));
 
-			$miscellaneous_expenses = Safe::where("purpose", "miscellaneous")->where("amount", "<", 0)
-				->select(DB::raw("SUM(amount * -1) as expenses"), DB::raw("DATE_FORMAT(created_at, '%Y') as year"))
-				->groupBy(DB::raw("DATE_FORMAT(created_at, '%Y')"))
-				->get();
-		}
+            $miscellaneous_expenses = Safe::where("purpose", "miscellaneous")->where("amount", "<", 0)->select(DB::raw("SUM(amount * -1) as expenses"), DB::raw("strftime('%Y',created_at) as year"))->groupBy(DB::raw("strftime('%Y',created_at)"))->get();
+        }
 
-		if ($analysis == "month") {
-			$orders_analysis_data->select(DB::raw("DATE_FORMAT(orders.updated_at, '%m') as month"), DB::raw("COUNT(DISTINCT orders.id) as orders"), "type", DB::raw("SUM(orders.total_price) as total_price"))
-				->groupBy(DB::raw("DATE_FORMAT(orders.updated_at, '%m')"), 'type')
-				->where(DB::raw("DATE_FORMAT(orders.updated_at, '%Y')"), $year);
+        if ($analysis == "month") {
+            $orders_analysis_data->select(DB::raw("strftime('%m',orders.updated_at) as month"), DB::raw("COUNT(DISTINCT orders.id) as orders"), "type", DB::raw("SUM(orders.total_price) as total_price"))->groupBy(DB::raw("strftime('%m',orders.updated_at)"), 'type')->where(DB::raw("strftime('%Y',orders.updated_at)"), $year);
 
-			$profits_analysis_data->select(DB::raw("SUM(o.qty * o.unit_price) as total_unit_price"), DB::raw("DATE_FORMAT(orders.updated_at, '%m') as month"))
-				->groupBy(DB::raw("DATE_FORMAT(orders.updated_at, '%m')"))
-				->where(DB::raw("DATE_FORMAT(orders.updated_at, '%Y')"), $year);
+            $profits_analysis_data->select(DB::raw("SUM(o.qty * o.unit_price) as total_unit_price"), DB::raw("strftime('%m',orders.updated_at) as month"))->groupBy(DB::raw("strftime('%m',orders.updated_at)"))->where(DB::raw("strftime('%Y',orders.updated_at)"), $year);
 
-			$miscellaneous_expenses = Safe::where(DB::raw("DATE_FORMAT(created_at, '%Y')"), $year)
-				->where("purpose", "miscellaneous")->where("amount", "<", 0)
-				->select(DB::raw("SUM(amount * -1) as expenses"), DB::raw("DATE_FORMAT(created_at, '%m') as month"))
-				->groupBy(DB::raw("DATE_FORMAT(created_at, '%m')"))
-				->get();
-		}
+            $miscellaneous_expenses = Safe::where(DB::raw("strftime('%Y',created_at)"), $year)->where("purpose", "miscellaneous")->where("amount", "<", 0)->select(DB::raw("SUM(amount * -1) as expenses"), DB::raw("strftime('%m',created_at) as month"))->groupBy(DB::raw("strftime('%m',created_at)"))->get();
+        }
 
-		if ($analysis == "day") {
-			$orders_analysis_data->select(DB::raw("DATE_FORMAT(orders.updated_at, '%d') as day"), DB::raw("COUNT(DISTINCT orders.id) as orders"), "type", DB::raw("SUM(orders.total_price) as total_price"))
-				->groupBy(DB::raw("DATE_FORMAT(orders.updated_at, '%d')"), 'type')
-				->where(DB::raw("DATE_FORMAT(orders.updated_at, '%Y-%m')"), $month);
+        if ($analysis == "day") {
+            $orders_analysis_data->select(DB::raw("strftime('%d',orders.updated_at) as day"), DB::raw("COUNT(DISTINCT orders.id) as orders"), "type", DB::raw("SUM(orders.total_price) as total_price"))->groupBy(DB::raw("strftime('%d',orders.updated_at)"), 'type')->where(DB::raw("strftime('%Y-%m',orders.updated_at)"), $month);
 
-			$profits_analysis_data->select(DB::raw("SUM(o.qty * o.unit_price) as total_unit_price"), DB::raw("DATE_FORMAT(orders.updated_at, '%d') as day"))
-				->groupBy(DB::raw("DATE_FORMAT(orders.updated_at, '%d')"))
-				->where(DB::raw("DATE_FORMAT(orders.updated_at, '%Y-%m')"), $month);
-		}
+            $profits_analysis_data->select(DB::raw("SUM(o.qty * o.unit_price) as total_unit_price"), DB::raw("strftime('%d',orders.updated_at) as day"))->groupBy(DB::raw("strftime('%d',orders.updated_at)"))->where(DB::raw("strftime('%Y-%m',orders.updated_at)"), $month);
+        }
 
-		$orders_analysis_data = $orders_analysis_data->get();
-		$profits_analysis_data = $profits_analysis_data->get();
+        $orders_analysis_data = $orders_analysis_data->get();
+        $profits_analysis_data = $profits_analysis_data->get();
 
-		// The rest of the code stays the same
+        $orders_analysis_data_sorted = [];
+        $miscellaneous_expenses_sorted = [];
 
-		dd([
-			"alertList" => $list,
-			"capital" => $capital,
-			"profits" => $profits,
-			"safe" => $safe,
-			"safe_capital" => $safe_capital,
-			"expenses" => $expenses,
-			"total_sell" => $total_sell,
-			'products_capital' => $products_capital,
-			'online_orders_capital' => $online_orders_capital,
-			"month" => date("m"),
-			"year" => date("Y"),
-			"month_name" => date("F"),
-			"year_name" => date("Y"),
-			"categories" => $categories,
-			"orders_chart_data" => $orders_chart_data,
-			"online_chart_data" => $online_chart_data,
-			"offline_chart_data" => $offline_chart_data,
-			"orders_chart_price" => $orders_chart_price,
-			"online_chart_price" => $online_chart_price,
-			"offline_chart_price" => $offline_chart_price,
-			"profits_chart" => $profits_chart,
-		]);
+        foreach ($orders_analysis_data as $data) {
+            $category = $data['year'] ?? ($data['month'] ? date("M", strtotime(date("Y-" . $data['month']))) : $data['day']);
 
-		return view('dashboard.welcome', [
-			"alertList" => $list,
-			"capital" => $capital,
-			"profits" => $profits,
-			"safe" => $safe,
-			"safe_capital" => $safe_capital,
-			"expenses" => $expenses,
-			"total_sell" => $total_sell,
-			'products_capital' => $products_capital,
-			'online_orders_capital' => $online_orders_capital,
-			"month" => date("m"),
-			"year" => date("Y"),
-			"month_name" => date("F"),
-			"year_name" => date("Y"),
-			"categories" => $categories,
-			"orders_chart_data" => $orders_chart_data,
-			"online_chart_data" => $online_chart_data,
-			"offline_chart_data" => $offline_chart_data,
-			"orders_chart_price" => $orders_chart_price,
-			"online_chart_price" => $online_chart_price,
-			"offline_chart_price" => $offline_chart_price,
-			"profits_chart" => $profits_chart,
-		]);
-	}
+            if (!in_array($category, $categories)) {
+                $categories[] = $category;
+            }
+
+            $orders_analysis_data_sorted[$category][] = $data;
+        }
+
+
+        if (isset($miscellaneous_expenses)) {
+            foreach ($miscellaneous_expenses as $data) {
+                $category = $data['year'] ?? $data['month'] ?? $data['day'];
+
+                $miscellaneous_expenses_sorted[$category] = $data;
+            }
+        }
+
+        foreach ($profits_analysis_data as $data) {
+            $category = $data['year'] ?? ($data['month'] ? date("M", strtotime(date("Y-" . $data['month']))) : $data['day']);
+
+            $orders_analysis_data_sorted[$category]["total_unit_price"] = $data['total_unit_price'];
+        }
+
+        foreach ($orders_analysis_data_sorted as $data) {
+            $orders_chart_data[] = isset($data[1]) ? $data[0]['orders'] + $data[1]['orders'] : $data[0]['orders'];
+            $orders_chart_price[] = isset($data[1]) ? $data[0]['total_price'] + $data[1]['total_price'] : $data[0]['total_price'];
+
+            if ($analysis != "day") {
+                $calc_profit = isset($data[1]) ? round(($data[0]['total_price'] + $data[1]['total_price']) - $data['total_unit_price'], 2) : round(($data[0]['total_price'] - $data['total_unit_price']), 2);
+
+                $profits_chart[] = $calc_profit - $miscellaneous_expenses_sorted[$data[0]['month'] ?? $data[0]['year']]['expenses'];
+            } else {
+                $profits_chart[] = isset($data[1]) ? round(($data[0]['total_price'] + $data[1]['total_price']) - $data['total_unit_price'], 2) : round(($data[0]['total_price'] - $data['total_unit_price']), 2);
+            }
+
+            if ($data[0]['type'] == "online") {
+                $online_chart_data[] = $data[0]['orders'];
+                $online_chart_price[] = $data[0]['total_price'];
+            }
+
+            if ($data[0]['type'] == "offline") {
+                $offline_chart_data[] = $data[0]['orders'];
+                $offline_chart_price[] = $data[0]['total_price'];
+            }
+
+            if (isset($data[1])) {
+                if ($data[1]['type'] == "online") {
+                    $online_chart_data[] = $data[1]['orders'];
+                    $online_chart_price[] = $data[1]['total_price'];
+                }
+
+                if ($data[1]['type'] == "offline") {
+                    $offline_chart_data[] = $data[1]['orders'];
+                    $offline_chart_price[] = $data[1]['total_price'];
+                }
+            }
+
+            if (count($online_chart_data) < count($offline_chart_data)) {
+                $online_chart_data[] = 0;
+                $online_chart_price[] = 0;
+            }
+
+            if (count($online_chart_data) > count($offline_chart_data)) {
+                $offline_chart_data[] = 0;
+                $offline_chart_price[] = 0;
+            }
+        }
+
+        return view('dashboard.welcome', [
+            "alertList" => $list,
+            "capital" => $capital,
+            "profits" => $profits,
+            "safe" => $safe,
+            "safe_capital" => $safe_capital,
+            "expenses" => $expenses,
+            "total_sell" => $total_sell,
+            'products_capital' => $products_capital,
+            'online_orders_capital' => $online_orders_capital,
+            "month" => date("m"),
+            "year" => date("Y"),
+            "month_name" => date("F"),
+            "year_name" => date("Y"),
+            "categories" => $categories,
+            "orders_chart_data" => $orders_chart_data,
+            "online_chart_data" => $online_chart_data,
+            "offline_chart_data" => $offline_chart_data,
+            "orders_chart_price" => $orders_chart_price,
+            "online_chart_price" => $online_chart_price,
+            "offline_chart_price" => $offline_chart_price,
+            "profits_chart" => $profits_chart,
+        ]);
+    }
 }
