@@ -29,9 +29,9 @@ class ReportController extends Controller
             }
         }
 
-        $analysis = Order::query()->where("status", "finished")->select(DB::raw("strftime('%Y-%m',orders.updated_at) as month"), DB::raw("COUNT(DISTINCT orders.id) as orders"), DB::raw("SUM(orders.total_price) as total_price"))->groupBy(DB::raw("strftime('%m',orders.updated_at)"))->where(DB::raw("strftime('%Y',orders.updated_at)"), $year)->get();
+        $analysis = Order::query()->where("status", "finished")->select(DB::raw("DATE_FORMAT('%Y-%m',orders.updated_at) as month"), DB::raw("COUNT(DISTINCT orders.id) as orders"), DB::raw("SUM(orders.total_price) as total_price"))->groupBy(DB::raw("DATE_FORMAT('%m',orders.updated_at)"))->where(DB::raw("DATE_FORMAT('%Y',orders.updated_at)"), $year)->get();
 
-        $unit_price = Order::query()->leftJoin("order_items as o", "orders.id", "o.order_id")->where("status", "finished")->select(DB::raw("SUM(o.qty * o.unit_price) as total_unit_price"), DB::raw("strftime('%Y-%m',orders.updated_at) as month"))->groupBy(DB::raw("strftime('%m',orders.updated_at)"))->where(DB::raw("strftime('%Y',orders.updated_at)"), $year)->get();
+        $unit_price = Order::query()->leftJoin("order_items as o", "orders.id", "o.order_id")->where("status", "finished")->select(DB::raw("SUM(o.qty * o.unit_price) as total_unit_price"), DB::raw("DATE_FORMAT('%Y-%m',orders.updated_at) as month"))->groupBy(DB::raw("DATE_FORMAT('%m',orders.updated_at)"))->where(DB::raw("DATE_FORMAT('%Y',orders.updated_at)"), $year)->get();
 
         foreach ($analysis as $item) {
             $data[$item->month] = $item->toArray();
@@ -42,26 +42,26 @@ class ReportController extends Controller
             $data[$item->month]['total_unit_price'] = $item->total_unit_price;
         }
 
-        $expenses = Safe::where(DB::raw("strftime('%Y',created_at)"), $year)->where("purpose", "miscellaneous")->where("amount", "<", 0)->select(DB::raw("SUM(amount * -1) as expenses"), DB::raw("strftime('%Y-%m',created_at) as month"))->groupBy(DB::raw("strftime('%m',created_at)"))->get();
+        $expenses = Safe::where(DB::raw("DATE_FORMAT('%Y',created_at)"), $year)->where("purpose", "miscellaneous")->where("amount", "<", 0)->select(DB::raw("SUM(amount * -1) as expenses"), DB::raw("DATE_FORMAT('%Y-%m',created_at) as month"))->groupBy(DB::raw("DATE_FORMAT('%m',created_at)"))->get();
 
         foreach ($expenses as $item) {
             $data[$item->month]['expenses'] = $item->expenses;
             $data[$item->month]['profits'] -= $item->expenses;
         }
 
-        $products_expenses = Safe::where(DB::raw("strftime('%Y',created_at)"), $year)->where("purpose", "products")->where("amount", "<", 0)->select(DB::raw("SUM(amount * -1) as expenses"), DB::raw("strftime('%Y-%m',created_at) as month"))->groupBy(DB::raw("strftime('%m',created_at)"))->get();
+        $products_expenses = Safe::where(DB::raw("DATE_FORMAT('%Y',created_at)"), $year)->where("purpose", "products")->where("amount", "<", 0)->select(DB::raw("SUM(amount * -1) as expenses"), DB::raw("DATE_FORMAT('%Y-%m',created_at) as month"))->groupBy(DB::raw("DATE_FORMAT('%m',created_at)"))->get();
 
         foreach ($products_expenses as $item) {
             $data[$item->month]['products_expenses'] = $item->expenses;
         }
 
-        $paid_profits = Profit::where(DB::raw("strftime('%Y',created_at)"), $year)->select(DB::raw("SUM(amount) as paid_profits"), DB::raw("strftime('%Y-%m',created_at) as month"))->groupBy(DB::raw("strftime('%m',created_at)"))->get();
+        $paid_profits = Profit::where(DB::raw("DATE_FORMAT('%Y',created_at)"), $year)->select(DB::raw("SUM(amount) as paid_profits"), DB::raw("DATE_FORMAT('%Y-%m',created_at) as month"))->groupBy(DB::raw("DATE_FORMAT('%m',created_at)"))->get();
 
         foreach ($paid_profits as $item) {
             $data[$item->month]['paid_profits'] = $item->paid_profits;
         }
 
-        $safe = Safe::where(DB::raw("strftime('%Y',created_at)"), $year)->select("amount", DB::raw("strftime('%Y-%m',created_at) as month"))->get();
+        $safe = Safe::where(DB::raw("DATE_FORMAT('%Y',created_at)"), $year)->select("amount", DB::raw("DATE_FORMAT('%Y-%m',created_at) as month"))->get();
 
         foreach ($data as &$item) {
             if ($item['month'] > date("Y-m")) continue;
