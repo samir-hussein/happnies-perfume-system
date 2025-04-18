@@ -40,7 +40,6 @@ class WelcomeController extends Controller
             ->first()
             ->total;
 
-
         $categories = [];
         $orders_chart_data = [];
         $online_chart_data = [];
@@ -51,26 +50,70 @@ class WelcomeController extends Controller
         $profits_chart = [];
         $orders_analysis_data = Order::query()->where("status", "finished");
         $profits_analysis_data = Order::query()->join("order_items as o", "orders.id", "o.order_id")->where("status", "finished");
+
         if ($analysis == "year") {
-            $orders_analysis_data->select(DB::raw("strftime('%Y',orders.updated_at) as year"), DB::raw("COUNT(DISTINCT orders.id) as orders"), "type", DB::raw("SUM(orders.total_price) as total_price"))->groupBy(DB::raw("strftime('%Y',orders.updated_at)"), 'type');
+            $orders_analysis_data->select(
+                DB::raw("YEAR(orders.updated_at) as year"),
+                DB::raw("COUNT(DISTINCT orders.id) as orders"),
+                "type",
+                DB::raw("SUM(orders.total_price) as total_price")
+            )->groupBy(DB::raw("YEAR(orders.updated_at)"), 'type');
 
-            $profits_analysis_data->select(DB::raw("SUM(o.qty * o.unit_price) as total_unit_price"), DB::raw("strftime('%Y',orders.updated_at) as year"))->groupBy(DB::raw("strftime('%Y',orders.updated_at)"));
+            $profits_analysis_data->select(
+                DB::raw("SUM(o.qty * o.unit_price) as total_unit_price"),
+                DB::raw("YEAR(orders.updated_at) as year")
+            )->groupBy(DB::raw("YEAR(orders.updated_at)"));
 
-            $miscellaneous_expenses = Safe::where("purpose", "miscellaneous")->where("amount", "<", 0)->select(DB::raw("SUM(amount * -1) as expenses"), DB::raw("strftime('%Y',created_at) as year"))->groupBy(DB::raw("strftime('%Y',created_at)"))->get();
+            $miscellaneous_expenses = Safe::where("purpose", "miscellaneous")
+                ->where("amount", "<", 0)
+                ->select(
+                    DB::raw("SUM(amount * -1) as expenses"),
+                    DB::raw("YEAR(created_at) as year")
+                )->groupBy(DB::raw("YEAR(created_at)"))->get();
         }
 
         if ($analysis == "month") {
-            $orders_analysis_data->select(DB::raw("strftime('%m',orders.updated_at) as month"), DB::raw("COUNT(DISTINCT orders.id) as orders"), "type", DB::raw("SUM(orders.total_price) as total_price"))->groupBy(DB::raw("strftime('%m',orders.updated_at)"), 'type')->where(DB::raw("strftime('%Y',orders.updated_at)"), $year);
+            $orders_analysis_data->select(
+                DB::raw("MONTH(orders.updated_at) as month"),
+                DB::raw("COUNT(DISTINCT orders.id) as orders"),
+                "type",
+                DB::raw("SUM(orders.total_price) as total_price")
+            )->groupBy(DB::raw("MONTH(orders.updated_at)"), 'type')
+                ->whereYear('orders.updated_at', $year);
 
-            $profits_analysis_data->select(DB::raw("SUM(o.qty * o.unit_price) as total_unit_price"), DB::raw("strftime('%m',orders.updated_at) as month"))->groupBy(DB::raw("strftime('%m',orders.updated_at)"))->where(DB::raw("strftime('%Y',orders.updated_at)"), $year);
+            $profits_analysis_data->select(
+                DB::raw("SUM(o.qty * o.unit_price) as total_unit_price"),
+                DB::raw("MONTH(orders.updated_at) as month")
+            )->groupBy(DB::raw("MONTH(orders.updated_at)"))
+                ->whereYear('orders.updated_at', $year);
 
-            $miscellaneous_expenses = Safe::where(DB::raw("strftime('%Y',created_at)"), $year)->where("purpose", "miscellaneous")->where("amount", "<", 0)->select(DB::raw("SUM(amount * -1) as expenses"), DB::raw("strftime('%m',created_at) as month"))->groupBy(DB::raw("strftime('%m',created_at)"))->get();
+            $miscellaneous_expenses = Safe::whereYear('created_at', $year)
+                ->where("purpose", "miscellaneous")
+                ->where("amount", "<", 0)
+                ->select(
+                    DB::raw("SUM(amount * -1) as expenses"),
+                    DB::raw("MONTH(created_at) as month")
+                )->groupBy(DB::raw("MONTH(created_at)"))->get();
         }
 
         if ($analysis == "day") {
-            $orders_analysis_data->select(DB::raw("strftime('%d',orders.updated_at) as day"), DB::raw("COUNT(DISTINCT orders.id) as orders"), "type", DB::raw("SUM(orders.total_price) as total_price"))->groupBy(DB::raw("strftime('%d',orders.updated_at)"), 'type')->where(DB::raw("strftime('%Y-%m',orders.updated_at)"), $month);
+            $monthDate = \Carbon\Carbon::createFromFormat('Y-m', $month);
 
-            $profits_analysis_data->select(DB::raw("SUM(o.qty * o.unit_price) as total_unit_price"), DB::raw("strftime('%d',orders.updated_at) as day"))->groupBy(DB::raw("strftime('%d',orders.updated_at)"))->where(DB::raw("strftime('%Y-%m',orders.updated_at)"), $month);
+            $orders_analysis_data->select(
+                DB::raw("DAY(orders.updated_at) as day"),
+                DB::raw("COUNT(DISTINCT orders.id) as orders"),
+                "type",
+                DB::raw("SUM(orders.total_price) as total_price")
+            )->groupBy(DB::raw("DAY(orders.updated_at)"), 'type')
+                ->whereYear('orders.updated_at', $monthDate->year)
+                ->whereMonth('orders.updated_at', $monthDate->month);
+
+            $profits_analysis_data->select(
+                DB::raw("SUM(o.qty * o.unit_price) as total_unit_price"),
+                DB::raw("DAY(orders.updated_at) as day")
+            )->groupBy(DB::raw("DAY(orders.updated_at)"))
+                ->whereYear('orders.updated_at', $monthDate->year)
+                ->whereMonth('orders.updated_at', $monthDate->month);
         }
 
         $orders_analysis_data = $orders_analysis_data->get();
@@ -80,7 +123,13 @@ class WelcomeController extends Controller
         $miscellaneous_expenses_sorted = [];
 
         foreach ($orders_analysis_data as $data) {
-            $category = $data['year'] ?? ($data['month'] ? date("M", strtotime(date("Y-" . $data['month']))) : $data['day']);
+            if ($analysis == "year") {
+                $category = $data['year'];
+            } elseif ($analysis == "month") {
+                $category = date("M", mktime(0, 0, 0, $data['month'], 1));
+            } else {
+                $category = $data['day'];
+            }
 
             if (!in_array($category, $categories)) {
                 $categories[] = $category;
@@ -89,17 +138,21 @@ class WelcomeController extends Controller
             $orders_analysis_data_sorted[$category][] = $data;
         }
 
-
         if (isset($miscellaneous_expenses)) {
             foreach ($miscellaneous_expenses as $data) {
                 $category = $data['year'] ?? $data['month'] ?? $data['day'];
-
                 $miscellaneous_expenses_sorted[$category] = $data;
             }
         }
 
         foreach ($profits_analysis_data as $data) {
-            $category = $data['year'] ?? ($data['month'] ? date("M", strtotime(date("Y-" . $data['month']))) : $data['day']);
+            if ($analysis == "year") {
+                $category = $data['year'];
+            } elseif ($analysis == "month") {
+                $category = date("M", mktime(0, 0, 0, $data['month'], 1));
+            } else {
+                $category = $data['day'];
+            }
 
             $orders_analysis_data_sorted[$category]["total_unit_price"] = $data['total_unit_price'];
         }
@@ -111,7 +164,7 @@ class WelcomeController extends Controller
             if ($analysis != "day") {
                 $calc_profit = isset($data[1]) ? round(($data[0]['total_price'] + $data[1]['total_price']) - $data['total_unit_price'], 2) : round(($data[0]['total_price'] - $data['total_unit_price']), 2);
 
-                $profits_chart[] = $calc_profit - $miscellaneous_expenses_sorted[$data[0]['month'] ?? $data[0]['year']]['expenses'];
+                $profits_chart[] = $calc_profit - ($miscellaneous_expenses_sorted[$data[0]['month'] ?? $data[0]['year']]['expenses'] ?? 0);
             } else {
                 $profits_chart[] = isset($data[1]) ? round(($data[0]['total_price'] + $data[1]['total_price']) - $data['total_unit_price'], 2) : round(($data[0]['total_price'] - $data['total_unit_price']), 2);
             }
