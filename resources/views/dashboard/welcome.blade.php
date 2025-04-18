@@ -346,7 +346,7 @@
                 categories: JSON.parse('{!! json_encode($categories) !!}'),
                 labels: {
                     formatter: function(val) {
-                        return val + " يوم"
+                        return "يوم " + val
                     }
                 }
             },
