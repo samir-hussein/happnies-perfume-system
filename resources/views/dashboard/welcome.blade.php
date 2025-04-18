@@ -327,7 +327,7 @@
 			},
 			dataLabels: {
 				formatter: (val) => {
-					return val.toFixed(2)
+					return truncateNumber(val)
 				}
 			},
 			stroke: {
@@ -338,25 +338,25 @@
 				categories: JSON.parse('{!! json_encode($categories) !!}'),
 				labels: {
 					formatter: function(val) {
-						return val.toFixed(2) + " جنية"
+						return truncateNumber(val) + " جنية"
 					}
 				}
 			},
 			yaxis: {
-                categories: JSON.parse('{!! json_encode($categories) !!}'),
-                labels: {
-                    formatter: function(val) {
-                        return "يوم " + val
-                    }
-                }
-            },
+				categories: JSON.parse('{!! json_encode($categories) !!}'),
+				labels: {
+					formatter: function(val) {
+						return "يوم " + val
+					}
+				}
+			},
 			fill: {
 				opacity: 1
 			},
 			tooltip: {
 				y: {
 					formatter: function(val) {
-						return val.toFixed(2) + " جنية"
+						return truncateNumber(val) + " جنية"
 					}
 				}
 			},
@@ -448,6 +448,10 @@
 			$("#year-div").css("display", "none");
 		} else {
 			$("#year-div").css("display", "none");
+		}
+
+		function truncateNumber(num) {
+			return Math.trunc(num * 100) / 100;
 		}
 	</script>
 @endsection
