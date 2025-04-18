@@ -322,15 +322,16 @@
             },
             plotOptions: {
                 bar: {
-                    horizontal: true
+                    horizontal: false
                 }
             },
             dataLabels: {
                 enabled: true
             },
             stroke: {
-                width: 1,
-                colors: ['#fff']
+                show: true,
+                width: 4,
+                colors: ['transparent']
             },
             xaxis: {
                 categories: JSON.parse('{!! json_encode($categories) !!}'),
