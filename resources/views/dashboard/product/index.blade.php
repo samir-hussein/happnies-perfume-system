@@ -120,7 +120,7 @@
 						<div class="card-body my-n1">
 							<div class="d-flex">
 								<div class="flex-fill">
-									<h4 class="mb-0">{{ number_format($oil, 2) }} جنية</h4>
+									<h4 class="mb-0">{{ $oil }} جرام</h4>
 								</div>
 								<div class="flex-fill text-right">
 									<span class="sparkline inlinebar"><canvas width="40" height="32"
@@ -138,7 +138,7 @@
                         <div class="card-body my-n1">
                             <div class="d-flex">
                                 <div class="flex-fill">
-                                    <h4 class="mb-0">{{ number_format($oil_sold, 2) }} جنية</h4>
+                                    <h4 class="mb-0">{{ $oil_sold }} جرام</h4>
                                 </div>
                                 <div class="flex-fill text-right">
                                     <span class="sparkline inlinebar"><canvas width="40" height="32"
