@@ -329,9 +329,8 @@
                 enabled: true
             },
             stroke: {
-                show: true,
-                width: 4,
-                colors: ['transparent']
+                width: 1,
+                colors: ['#fff']
             },
             xaxis: {
                 categories: JSON.parse('{!! json_encode($categories) !!}'),
